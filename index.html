@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>RideUp Payment</title>
+    <script src="https://cdn.payme.io/hf/v1/hostedfields.js"></script>
+    <style>
+        /* עיצוב Material-style בהתאמה לאפליקציית RideUp */
+        :root {
+            --primary: #00897B;
+            --on-primary: #FFFFFF;
+            --surface: #FFFFFF;
+            --surface-container: #F9FAFB;
+            --on-surface: #1F2937;
+            --on-surface-variant: #4B5563;
+            --outline: rgba(0,0,0,0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            margin: 0;
+            padding: 20px 16px 24px;
+            background: var(--surface);
+            color: var(--on-surface);
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .field-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--on-surface-variant);
+            margin-bottom: 6px;
+        }
+        .input-container {
+            background: var(--surface-container);
+            border: 1px solid var(--outline);
+            border-radius: var(--radius);
+            padding: 0 16px;
+            margin-bottom: 16px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        .input-container iframe {
+            height: 24px !important;
+            min-height: 24px !important;
+        }
+        .input-container:focus-within {
+            border-color: var(--primary);
+            outline: none;
+        }
+        .row-fields {
+            display: flex;
+            gap: 12px;
+        }
+        .row-fields > div { flex: 1; min-width: 0; }
+        #add-card-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--on-primary);
+            background: var(--primary);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #add-card-btn:hover:not(:disabled) {
+            filter: brightness(1.05);
+        }
+        #add-card-btn:active:not(:disabled) {
+            filter: brightness(0.98);
+        }
+        #add-card-btn:disabled {
+            background: #9CA3AF;
+            color: #F9FAFB;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <label class="field-label" for="card-number">מספר כרטיס</label>
+    <div id="card-number" class="input-container"></div>
+    <div class="row-fields">
+        <div>
+            <label class="field-label" for="card-expiry">תוקף</label>
+            <div id="card-expiry" class="input-container"></div>
+        </div>
+        <div>
+            <label class="field-label" for="card-cvv">CVV</label>
+            <div id="card-cvv" class="input-container"></div>
+        </div>
+    </div>
+    <button type="button" id="add-card-btn">שמור כרטיס</button>
+
+    <script>
+    const API_KEY = '3ce67f87-2185-4d9b-8aaf-9849eb1a80f6'; 
+
+    function sendTokenToFlutter(result) {
+        const str = typeof result === 'string' ? result : JSON.stringify(result);
+        const token = (result && result.token) ? result.token : str;
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.PaymentChannel) {
+            window.webkit.messageHandlers.PaymentChannel.postMessage(str);
+            return;
+        }
+        if (window.PaymentChannel && typeof window.PaymentChannel.postMessage === 'function') {
+            window.PaymentChannel.postMessage(str);
+            return;
+        }
+        alert("Success! Token: " + token);
+    }
+
+    PayMe.create(API_KEY, { testMode: true, language: 'he' }).then(function(instance) {
+        const fields = instance.hostedFields();
+        const styles = { base: { fontSize: '16px', color: '#1F2937', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' } };
+        fields.create('cardNumber', { styles }).mount('#card-number');
+        fields.create('cardExpiration', { styles }).mount('#card-expiry');
+        fields.create('cvc', { styles }).mount('#card-cvv');
+
+        document.getElementById('add-card-btn').addEventListener('click', function() {
+            const btn = this;
+            /* בדיקה לפני שליחה: אם ל-PayMe יש isValid – בודקים שהשדות מלאים */
+            if (typeof instance.isValid === 'function' && !instance.isValid()) {
+                alert('נא למלא את כל השדות.');
+                return;
+            }
+            btn.disabled = true;
+            btn.innerText = 'אנא המתן...';
+            console.log('tokenize started');
+
+            instance.tokenize({
+                payerFirstName: 'RideUp',
+                payerLastName: 'Customer',
+                payerEmail: 'test@rideup.tech',
+                payerPhone: '0501234567',
+                payerSocialId: "123456782",
+                total: { label: 'Card Verification', amount: { currency: 'ILS', value: '1.00' } }
+            })
+            .then(function(result) {
+                console.log('tokenize success', result);
+                sendTokenToFlutter(result);
+            })
+            .catch(function(err) {
+                var errorDetail = err.errors ? JSON.stringify(err.errors) : (err.message || '');
+                console.error('tokenize failed', errorDetail);
+                var isValidationError = !errorDetail || /required|invalid|empty|missing|שדה|חובה|לא תקין/i.test(errorDetail);
+                alert(isValidationError ? 'נא למלא את כל השדות.' : 'אימות נכשל: ' + errorDetail);
+                btn.disabled = false;
+                btn.innerText = 'שמור כרטיס';
+            });
+        });
+    }).catch(function(err) {
+        console.error('PayMe init failed', err);
+    });
+    </script>
+</body>
+</html>
