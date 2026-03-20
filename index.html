@@ -4,102 +4,317 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>RideUp Payment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.payme.io/hf/v1/hostedfields.js"></script>
     <style>
-        /* עיצוב Material-style בהתאמה לאפליקציית RideUp */
         :root {
             --primary: #00897B;
-            --on-primary: #FFFFFF;
-            --surface: #FFFFFF;
-            --surface-container: #F9FAFB;
-            --on-surface: #1F2937;
-            --on-surface-variant: #4B5563;
-            --outline: rgba(0,0,0,0.12);
-            --radius: 12px;
-            --radius-sm: 8px;
+            --primary-soft: rgba(0, 137, 123, 0.10);
+            --on-surface-variant: #6B7280;
+            --surface: #F5F7FA;
+            --card: #FFFFFF;
+            --on-surface: #111827;
+            --muted: #5B6475;
+            --outline: #DCE1EA;
+            --danger: #C62828;
+            --success: #1B8754;
+            --radius: 14px;
         }
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            font-family: "Heebo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
             margin: 0;
-            padding: 20px 16px 24px;
-            background: var(--surface);
+            padding: 20px 16px 28px;
+            background: linear-gradient(180deg, #f7fafb 0%, #f1f5f9 100%);
             color: var(--on-surface);
             font-size: 16px;
             -webkit-font-smoothing: antialiased;
         }
+        .payment-shell {
+            max-width: 460px;
+            margin: 0 auto;
+        }
+        .hero {
+            margin-bottom: 14px;
+            text-align: right;
+        }
+        .hero h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+        .hero p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.45;
+            font-size: 14px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid #e6ebf2;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+            padding: 18px;
+        }
+        .trust-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #edf1f6;
+        }
+        .trust-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-soft);
+            color: #066e64;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .trust-copy {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+            text-align: left;
+        }
         .field-label {
             display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--on-surface-variant);
-            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 7px;
         }
-        .input-container {
-            background: var(--surface-container);
+        .input-container,
+        .text-input {
+            background: #fff;
             border: 1px solid var(--outline);
             border-radius: var(--radius);
-            padding: 0 16px;
-            margin-bottom: 16px;
-            height: 48px;
+            padding: 0 14px;
+            margin-bottom: 14px;
+            height: 50px;
             display: flex;
             align-items: center;
             overflow: hidden;
+            transition: border-color 120ms ease, box-shadow 120ms ease;
+        }
+        .text-input {
+            width: 100%;
+            font: inherit;
+            color: var(--on-surface);
+        }
+        .text-input::placeholder {
+            color: #95a0b2;
         }
         .input-container iframe {
             height: 24px !important;
             min-height: 24px !important;
         }
-        .input-container:focus-within {
+        .input-container:focus-within,
+        .text-input:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.12);
             outline: none;
+        }
+
+        /* למסגרות של Hosted Fields אין תמיד focus-within אמין בגלל iframe.
+           לכן נוסיף class ידנית דרך אירועי ה-SDK (focus/blur). */
+        .input-container.focused:not(.invalid) {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.12);
+            outline: none;
+        }
+        .text-input.focused:not(.invalid) {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.12);
+            outline: none;
+        }
+
+        /* Hosted Fields נטענים בתוך iframe; לפעמים :focus-within לא נדלק.
+           :has נתמך ברוב הדפדפנים מודרניים (כמו Chrome/Edge) ומאפשר לזהות פוקוס בתוך ה-iframe. */
+        @supports selector(:has(*)) {
+            .input-container:has(iframe:focus-within),
+            .input-container:has(iframe:focus) {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.12);
+            }
         }
         .row-fields {
             display: flex;
             gap: 12px;
         }
-        .row-fields > div { flex: 1; min-width: 0; }
+        .row-fields > div {
+            flex: 1;
+            min-width: 0;
+        }
+        .amount-box {
+            border: 1px solid #e8edf4;
+            background: #f8fafc;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            margin: 2px 0 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .amount-box strong {
+            font-size: 16px;
+        }
+        .hint {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        #status-message {
+            display: none;
+            font-size: 13px;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+        #status-message.error {
+            display: block;
+            color: #8f1d1d;
+            background: #fdecec;
+            border: 1px solid #f6c9c9;
+        }
+        #status-message.success {
+            display: block;
+            color: #0f5a38;
+            background: #eaf8ef;
+            border: 1px solid #bfe8ce;
+        }
+        .invalid,
+        .input-container.invalid,
+        .text-input.invalid {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.14) !important;
+        }
+        .field-error {
+            display: none;
+            margin: -6px 0 14px;
+            font-size: 12px;
+            color: var(--danger);
+            font-weight: 700;
+        }
+        .field-error.show {
+            display: block;
+        }
         #add-card-btn {
             width: 100%;
-            margin-top: 8px;
-            padding: 16px 24px;
-            font-size: 16px;
-            font-weight: 600;
+            height: 52px;
+            margin-top: 4px;
+            padding: 0 16px;
+            font-size: 18px;
+            font-weight: 800;
             font-family: inherit;
-            color: var(--on-primary);
-            background: var(--primary);
+            letter-spacing: -0.1px;
+            color: var(--on-surface-variant);
+            background: rgba(107, 114, 128, 0.12);
             border: none;
-            border-radius: var(--radius);
+            border-radius: 18px;
             cursor: pointer;
+            transition: transform 120ms ease, filter 120ms ease, background 120ms ease, color 120ms ease;
             -webkit-tap-highlight-color: transparent;
         }
+        #add-card-btn.btn-active {
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
         #add-card-btn:hover:not(:disabled) {
-            filter: brightness(1.05);
+            filter: brightness(1.02);
         }
         #add-card-btn:active:not(:disabled) {
+            transform: translateY(1px);
             filter: brightness(0.98);
         }
         #add-card-btn:disabled {
-            background: #9CA3AF;
-            color: #F9FAFB;
+            background: #9aa5b5;
+            color: #eef2f7;
             cursor: not-allowed;
+        }
+        .lock-icon {
+            width: 16px;
+            height: 16px;
+            fill: var(--primary);
+        }
+        .secure-footer {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
         }
     </style>
 </head>
 <body>
-    <label class="field-label" for="card-number">מספר כרטיס</label>
-    <div id="card-number" class="input-container"></div>
-    <div class="row-fields">
-        <div>
-            <label class="field-label" for="card-expiry">תוקף</label>
-            <div id="card-expiry" class="input-container"></div>
-        </div>
-        <div>
-            <label class="field-label" for="card-cvv">CVV</label>
-            <div id="card-cvv" class="input-container"></div>
-        </div>
-    </div>
-    <button type="button" id="add-card-btn">שמור כרטיס</button>
+    <main class="payment-shell">
+        <section class="hero">
+            <h1>פרטי תשלום מאובטחים</h1>
+        </section>
+        <section class="card" aria-label="טופס פרטי אשראי">
+            <div class="trust-strip">
+                <span class="trust-badge" aria-label="חיבור מאובטח">
+                    <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Zm7 14H7V10h10v10Z"/>
+                    </svg>
+                    תקשורת מוצפנת
+                </span>
+                <span class="trust-copy">הפרטים שלך אינם נשמרים אצלנו.</span>
+            </div>
+
+            <div class="amount-box" aria-label="סכום בדיקה">
+                <span>אימות כרטיס</span>
+                <strong>₪1.00</strong>
+            </div>
+
+            <label class="field-label" for="payer-social-id">תעודת זהות בעל/ת הכרטיס</label>
+            <input
+                id="payer-social-id"
+                class="text-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="9"
+                placeholder="הזינו 9 ספרות"
+            />
+            <div class="field-error" id="error-payer-social-id">שדה נדרש כדי להמשיך</div>
+
+            <label class="field-label" for="card-number">מספר כרטיס</label>
+            <div id="card-number" class="input-container"></div>
+            <div class="field-error" id="error-card-number">שדה נדרש כדי להמשיך</div>
+
+            <div class="row-fields">
+                <div>
+                    <label class="field-label" for="card-expiry">תוקף</label>
+                    <div id="card-expiry" class="input-container"></div>
+                    <div class="field-error" id="error-card-expiry">שדה נדרש כדי להמשיך</div>
+                </div>
+                <div>
+                    <label class="field-label" for="card-cvv">CVV</label>
+                    <div id="card-cvv" class="input-container"></div>
+                    <div class="field-error" id="error-card-cvv">שדה נדרש כדי להמשיך</div>
+                </div>
+            </div>
+
+            <p class="hint">במקרה הצורך, ייתכן ותתבקש/י להשלים אימות נוסף מול חברת האשראי (3D Secure).</p>
+            <div id="status-message" role="status" aria-live="polite"></div>
+
+            <button type="button" id="add-card-btn" class="btn-inactive">שמור כרטיס</button>
+            <div class="secure-footer">Powered by PayMe • SSL/TLS Secure</div>
+        </section>
+    </main>
 
     <script>
     const API_KEY = '3ce67f87-2185-4d9b-8aaf-9849eb1a80f6'; 
@@ -118,20 +333,279 @@
         alert("Success! Token: " + token);
     }
 
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.className = '';
+        if (!message) {
+            statusEl.style.display = 'none';
+            statusEl.textContent = '';
+            return;
+        }
+        statusEl.textContent = message;
+        statusEl.classList.add(type === 'success' ? 'success' : 'error');
+    }
+
+    function normalizeIsraeliId(value) {
+        return String(value || '').replace(/\D/g, '').slice(0, 9);
+    }
+
+    function isValidIsraeliId(value) {
+        const id = normalizeIsraeliId(value).padStart(9, '0');
+
+        // קודם כל ננסה להשתמש ב-validators של PayMe (כדי שהכללים יהיו זהים למערכת).
+        try {
+            if (typeof PayMe !== 'undefined' && PayMe.validators && PayMe.fields && PayMe.fields.SOCIAL_ID) {
+                const validator = PayMe.validators[PayMe.fields.SOCIAL_ID];
+                const errors = validator.test(id);
+                return !errors;
+            }
+        } catch (e) {
+            // fallback למטה
+        }
+
+        // Fallback: בדיקת checksum (אם מסיבה כלשהי אין validators של PayMe)
+        if (!/^\d{9}$/.test(id)) return false;
+        let sum = 0;
+        for (let i = 0; i < 9; i += 1) {
+            let digit = Number(id[i]) * ((i % 2) + 1);
+            if (digit > 9) digit -= 9;
+            sum += digit;
+        }
+        return sum % 10 === 0;
+    }
+
     PayMe.create(API_KEY, { testMode: true, language: 'he' }).then(function(instance) {
         const fields = instance.hostedFields();
-        const styles = { base: { fontSize: '16px', color: '#1F2937', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' } };
-        fields.create('cardNumber', { styles }).mount('#card-number');
-        fields.create('cardExpiration', { styles }).mount('#card-expiry');
-        fields.create('cvc', { styles }).mount('#card-cvv');
+        const cardStyles = {
+            base: {
+                fontSize: '16px',
+                color: '#1F2937',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                textAlign: 'right'
+            },
+            invalid: { color: '#C62828' },
+            valid: { color: '#1B8754' }
+        };
+
+        const cardNumberField = fields.create('cardNumber', { styles: cardStyles });
+        const cardExpiryField = fields.create('cardExpiration', { styles: cardStyles });
+        const cvcField = fields.create('cvc', { styles: cardStyles });
+
+        cardNumberField.mount('#card-number');
+        cardExpiryField.mount('#card-expiry');
+        cvcField.mount('#card-cvv');
+
+        const socialIdInput = document.getElementById('payer-social-id');
+        const btn = document.getElementById('add-card-btn');
+        const cardNumberEl = document.getElementById('card-number');
+        const cardExpiryEl = document.getElementById('card-expiry');
+        const cardCvvEl = document.getElementById('card-cvv');
+
+        const errorSocialIdEl = document.getElementById('error-payer-social-id');
+        const errorCardNumberEl = document.getElementById('error-card-number');
+        const errorCardExpiryEl = document.getElementById('error-card-expiry');
+        const errorCardCvvEl = document.getElementById('error-card-cvv');
+
+        // ניהול מצב שדות (מ-Hosted Fields דרך אירועים של ה-SDK)
+        let didAttempt = false;
+        const fieldState = {
+            cardNumber: false,
+            cardExpiration: false,
+            cvc: false
+        };
+
+        function setCardFocused(wrapperEl) {
+            cardNumberEl.classList.remove('focused');
+            cardExpiryEl.classList.remove('focused');
+            cardCvvEl.classList.remove('focused');
+            if (wrapperEl) wrapperEl.classList.add('focused');
+        }
+
+        // פוקוס/בלור כדי לייצר מסגרת ירוקה "יפה" גם בתוך iframe
+        cardNumberField.on('focus', function() {
+            setCardFocused(cardNumberEl);
+        });
+        cardNumberField.on('blur', function() {
+            cardNumberEl.classList.remove('focused');
+        });
+
+        cardExpiryField.on('focus', function() {
+            setCardFocused(cardExpiryEl);
+        });
+        cardExpiryField.on('blur', function() {
+            cardExpiryEl.classList.remove('focused');
+        });
+
+        cvcField.on('focus', function() {
+            setCardFocused(cardCvvEl);
+        });
+        cvcField.on('blur', function() {
+            cardCvvEl.classList.remove('focused');
+        });
+
+        // שינויי ולידציה כדי לסמן מסגרת אדומה כשהמשתמש לוחץ "שמור כרטיס"
+        cardNumberField.on('validity-changed', function(ev) {
+            fieldState.cardNumber = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cardNumber) {
+                    clearFieldInvalid(cardNumberEl, errorCardNumberEl);
+                } else {
+                    setFieldInvalid(cardNumberEl, errorCardNumberEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        // גיבוי: אם validity-changed לא מספיק זריז בדפדפן מסוים, keyup יעדכן את state
+        cardNumberField.on('keyup', function(ev) {
+            fieldState.cardNumber = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cardNumber) {
+                    clearFieldInvalid(cardNumberEl, errorCardNumberEl);
+                } else {
+                    setFieldInvalid(cardNumberEl, errorCardNumberEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        cardExpiryField.on('validity-changed', function(ev) {
+            fieldState.cardExpiration = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cardExpiration) {
+                    clearFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+                } else {
+                    setFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        cardExpiryField.on('keyup', function(ev) {
+            fieldState.cardExpiration = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cardExpiration) {
+                    clearFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+                } else {
+                    setFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        cvcField.on('validity-changed', function(ev) {
+            fieldState.cvc = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cvc) {
+                    clearFieldInvalid(cardCvvEl, errorCardCvvEl);
+                } else {
+                    setFieldInvalid(cardCvvEl, errorCardCvvEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        cvcField.on('keyup', function(ev) {
+            fieldState.cvc = !!ev.isValid;
+            if (didAttempt) {
+                if (fieldState.cvc) {
+                    clearFieldInvalid(cardCvvEl, errorCardCvvEl);
+                } else {
+                    setFieldInvalid(cardCvvEl, errorCardCvvEl);
+                }
+            }
+            updateButtonVisualState();
+        });
+
+        function setFieldInvalid(el, errorEl) {
+            if (el) el.classList.add('invalid');
+            if (errorEl) errorEl.classList.add('show');
+        }
+
+        function clearFieldInvalid(el, errorEl) {
+            if (el) el.classList.remove('invalid');
+            if (errorEl) errorEl.classList.remove('show');
+        }
+
+        function clearAllInvalid() {
+            clearFieldInvalid(socialIdInput, errorSocialIdEl);
+            clearFieldInvalid(cardNumberEl, errorCardNumberEl);
+            clearFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+            clearFieldInvalid(cardCvvEl, errorCardCvvEl);
+        }
+
+        function cardsValid() {
+            if (typeof instance.isValid === 'function') return instance.isValid();
+            return false;
+        }
+
+        function updateButtonVisualState() {
+            const socialId = normalizeIsraeliId(socialIdInput.value);
+            const socialOk = isValidIsraeliId(socialId);
+            const canProceed = socialOk && fieldState.cardNumber && fieldState.cardExpiration && fieldState.cvc;
+            if (canProceed) {
+                btn.classList.add('btn-active');
+            } else {
+                btn.classList.remove('btn-active');
+            }
+        }
+
+        socialIdInput.addEventListener('input', function() {
+            this.value = normalizeIsraeliId(this.value);
+            showStatus('', 'error');
+            const socialOk = isValidIsraeliId(this.value);
+            if (didAttempt) {
+                if (socialOk) {
+                    clearFieldInvalid(socialIdInput, errorSocialIdEl);
+                } else {
+                    setFieldInvalid(socialIdInput, errorSocialIdEl);
+                }
+            } else {
+                // לפני ניסיון של tokenization אנחנו לא מציפים שגיאות
+                clearFieldInvalid(socialIdInput, errorSocialIdEl);
+            }
+            updateButtonVisualState();
+        });
+
+        socialIdInput.addEventListener('focus', function() {
+            socialIdInput.classList.add('focused');
+        });
+        socialIdInput.addEventListener('blur', function() {
+            socialIdInput.classList.remove('focused');
+        });
 
         document.getElementById('add-card-btn').addEventListener('click', function() {
-            const btn = this;
-            /* בדיקה לפני שליחה: אם ל-PayMe יש isValid – בודקים שהשדות מלאים */
-            if (typeof instance.isValid === 'function' && !instance.isValid()) {
-                alert('נא למלא את כל השדות.');
-                return;
+            const socialId = normalizeIsraeliId(socialIdInput.value);
+            showStatus('', 'error');
+
+            didAttempt = true;
+            clearAllInvalid();
+            updateButtonVisualState();
+
+            const socialOk = !!socialId && isValidIsraeliId(socialId);
+            if (!socialOk) {
+                setFieldInvalid(socialIdInput, errorSocialIdEl);
             }
+
+            // שדות כרטיס (Hosted Fields בתוך iframe)
+            if (!fieldState.cardNumber) {
+                setFieldInvalid(cardNumberEl, errorCardNumberEl);
+            }
+            if (!fieldState.cardExpiration) {
+                setFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+            }
+            if (!fieldState.cvc) {
+                setFieldInvalid(cardCvvEl, errorCardCvvEl);
+            }
+
+            const canProceed =
+                socialOk &&
+                fieldState.cardNumber &&
+                fieldState.cardExpiration &&
+                fieldState.cvc;
+
+            if (!canProceed) return;
+
             btn.disabled = true;
             btn.innerText = 'אנא המתן...';
             console.log('tokenize started');
@@ -141,24 +615,46 @@
                 payerLastName: 'Customer',
                 payerEmail: 'test@rideup.tech',
                 payerPhone: '0501234567',
-                payerSocialId: "123456782",
+                payerSocialId: socialId,
                 total: { label: 'Card Verification', amount: { currency: 'ILS', value: '1.00' } }
             })
             .then(function(result) {
                 console.log('tokenize success', result);
+                showStatus('הכרטיס נשמר בהצלחה.', 'success');
+                didAttempt = false;
+                btn.disabled = false;
+                btn.innerText = 'שמור כרטיס';
+                updateButtonVisualState();
                 sendTokenToFlutter(result);
             })
             .catch(function(err) {
                 var errorDetail = err.errors ? JSON.stringify(err.errors) : (err.message || '');
                 console.error('tokenize failed', errorDetail);
                 var isValidationError = !errorDetail || /required|invalid|empty|missing|שדה|חובה|לא תקין/i.test(errorDetail);
-                alert(isValidationError ? 'נא למלא את כל השדות.' : 'אימות נכשל: ' + errorDetail);
+                showStatus(isValidationError ? 'נא למלא את כל השדות ולבדוק את הנתונים.' : 'אימות נכשל: ' + errorDetail, 'error');
+
+                // אם מדובר בשגיאת ולידציה, נציג גם את הודעת "שדה נדרש כדי להמשיך"
+                // עבור שדות הכרטיס כדי שההתנהגות תהיה עקבית (לא רק ת.ז.).
+                if (isValidationError) {
+                    didAttempt = true;
+                    setFieldInvalid(cardNumberEl, errorCardNumberEl);
+                    setFieldInvalid(cardExpiryEl, errorCardExpiryEl);
+                    setFieldInvalid(cardCvvEl, errorCardCvvEl);
+                    // ת.ז. היא שדה נוסף שמוליד שגיאת ולידציה גם ב-tokenize
+                    if (!socialOk) {
+                        setFieldInvalid(socialIdInput, errorSocialIdEl);
+                    }
+                }
+
                 btn.disabled = false;
                 btn.innerText = 'שמור כרטיס';
             });
         });
+
+        updateButtonVisualState();
     }).catch(function(err) {
         console.error('PayMe init failed', err);
+        showStatus('שגיאה בטעינת מערכת התשלומים. נסו לרענן את העמוד.', 'error');
     });
     </script>
 </body>
