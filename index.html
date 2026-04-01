@@ -319,9 +319,15 @@
     <script>
     const API_KEY = '3ce67f87-2185-4d9b-8aaf-9849eb1a80f6'; 
 
-    function sendTokenToFlutter(result) {
-        const str = typeof result === 'string' ? result : JSON.stringify(result);
-        const token = (result && result.token) ? result.token : str;
+    function sendTokenToFlutter(result, socialId) {
+        const normalizedSocialId = normalizeIsraeliId(socialId || '');
+        const payload = {
+            type: 'tokenize-success',
+            social_id: normalizedSocialId,
+            payload: result
+        };
+        const str = JSON.stringify(payload);
+        const token = (result && result.token) ? result.token : '';
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.PaymentChannel) {
             window.webkit.messageHandlers.PaymentChannel.postMessage(str);
             return;
@@ -625,7 +631,7 @@
                 btn.disabled = false;
                 btn.innerText = 'שמור כרטיס';
                 updateButtonVisualState();
-                sendTokenToFlutter(result);
+                sendTokenToFlutter(result, socialId);
             })
             .catch(function(err) {
                 var errorDetail = err.errors ? JSON.stringify(err.errors) : (err.message || '');
